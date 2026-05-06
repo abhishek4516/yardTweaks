@@ -6,6 +6,9 @@ import "axios";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon } from "@turf/helpers";
 // import { io } from "socket.io-client";
+import { graph } from "../data/graph";
+import { roadNodes } from "../data/roadNodes";
+import { aStar } from "../utils/aStar";
 
 function rotatePoint([x, y], [cx, cy], angle) {
   const dx = x - cx;
@@ -27,7 +30,11 @@ export default function MapView() {
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   const selectedSlotRef = useRef(null);
+  const testPath = aStar(graph, "N1", "N4");
 
+  const routeCoords = testPath.map((nodeId) => roadNodes[nodeId]);
+
+  console.log(testPath);
   useEffect(() => {
     selectedSlotRef.current = selectedSlot;
   }, [selectedSlot]);
@@ -250,6 +257,19 @@ export default function MapView() {
 
       map.on("mouseleave", "slots-fill", () => {
         map.getCanvas().style.cursor = "";
+      });
+
+      const path = aStar(graph, "N1", "N4");
+
+      const routeCoords = path.map((nodeId) => roadNodes[nodeId]);
+
+      map.getSource("route").setData({
+        type: "Feature",
+
+        geometry: {
+          type: "LineString",
+          coordinates: routeCoords,
+        },
       });
     });
 
