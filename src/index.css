@@ -3,9 +3,9 @@ html, body, #root {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* 🔥 no scroll at all */
+  overflow: hidden; 
 }
-@keyframes pulse {
+/* @keyframes pulse {
   0% {
     transform: scale(1);
     opacity: 1;
@@ -18,4 +18,4 @@ html, body, #root {
     transform: scale(1);
     opacity: 1;
   }
-}
+} */

@@ -5,7 +5,17 @@ import slotsData from "../data/slots.json";
 import "axios";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon } from "@turf/helpers";
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
+
+function rotatePoint([x, y], [cx, cy], angle) {
+  const dx = x - cx;
+  const dy = y - cy;
+
+  const rx = dx * Math.cos(angle) - dy * Math.sin(angle);
+  const ry = dx * Math.sin(angle) + dy * Math.cos(angle);
+
+  return [cx + rx, cy + ry];
+}
 
 export default function MapView() {
   const mapRef = useRef(null);
@@ -16,62 +26,70 @@ export default function MapView() {
   const [routeData] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-
   const selectedSlotRef = useRef(null);
 
   useEffect(() => {
     selectedSlotRef.current = selectedSlot;
   }, [selectedSlot]);
 
-  
+  useEffect(() => {
+    if (!mapInstance.current) return;
 
-
-
-useEffect(() => {
-  if (!mapInstance.current) return;
-
-  const socket = io("http://14.96.226.166:3002");
-
-  socket.on("connect", () => {
-    console.log("Socket connected");
-  });
-
-  socket.on("gnss", (data) => {
-    const lat = parseFloat(data.lat);
-    const lon = parseFloat(data.lon);
-
-    if (!lat || !lon) return;
-
-    const map = mapInstance.current;
-
-  
-    if (!truckMarkerRef.current) {
-    const el = document.createElement("div");
-
-el.style.width = "10px";
-el.style.height = "10px";
-el.style.backgroundColor = "#22c55e";
-el.style.borderRadius = "50%";
-el.style.border = "2px solid white";
-el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
-
-truckMarkerRef.current = new maplibregl.Marker({
-  element: el,
-  anchor: "center",
-})
-  .setLngLat([lon, lat])
-  .addTo(map);
-    } else {
-   
-      truckMarkerRef.current.setLngLat([lon, lat]);
+    if (!navigator.geolocation) {
+      console.log("Geolocation not supported");
+      return;
     }
-  });
 
-  return () => socket.disconnect();
-}, []);
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
 
+        const lon = position.coords.longitude;
 
+        const center = [77.2867, 28.5134];
+        const angle = -90 * (Math.PI / 180);
 
+        const rotatedPoint = rotatePoint([lon, lat], center, angle);
+
+        const map = mapInstance.current;
+
+        if (!truckMarkerRef.current) {
+          const el = document.createElement("div");
+
+          el.style.width = "10px";
+          el.style.height = "10px";
+          el.style.backgroundColor = "#22c55e";
+
+          el.style.borderRadius = "50%";
+
+          el.style.border = "2px solid white";
+
+          el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
+
+          truckMarkerRef.current = new maplibregl.Marker({
+            element: el,
+            anchor: "center",
+          })
+            .setLngLat(rotatedPoint)
+            .addTo(map);
+        } else {
+          truckMarkerRef.current.setLngLat(rotatedPoint);
+        }
+      },
+
+      (error) => {
+        console.log(error);
+      },
+
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000,
+      },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -91,47 +109,43 @@ truckMarkerRef.current = new maplibregl.Marker({
       },
       center: [77.2867, 28.5134],
       zoom: 16,
-    
     });
 
     mapInstance.current = map;
 
     map.on("load", () => {
-     const center = [77.2867, 28.5134]; 
-const angle = -90 * (Math.PI / 180);
+      // coordinates logger
+      map.on("click", (e) => {
+        console.log([e.lngLat.lng, e.lngLat.lat]);
+      });
 
-function rotatePoint([x, y], [cx, cy], angle) {
-  const dx = x - cx;
-  const dy = y - cy;
+      const center = [77.2867, 28.5134];
+      const angle = -90 * (Math.PI / 180);
 
-  const rx = dx * Math.cos(angle) - dy * Math.sin(angle);
-  const ry = dx * Math.sin(angle) + dy * Math.cos(angle);
+      const features = slotsData.map((slot) => {
+        const coords = slot.LatLong.split(",").map((pair) => {
+          const [lat, lon] = pair.trim().split(" ").map(Number);
+          return [lon, lat];
+        });
 
-  return [cx + rx, cy + ry];
-}
+        const rotatedCoords = coords.map((pt) =>
+          rotatePoint(pt, center, angle),
+        );
 
-const features = slotsData.map((slot) => {
-  const coords = slot.LatLong.split(",").map((pair) => {
-    const [lat, lon] = pair.trim().split(" ").map(Number);
-    return [lon, lat];
-  });
-
-  // 🔥 rotate each coordinate
-  const rotatedCoords = coords.map((pt) =>
-    rotatePoint(pt, center, angle)
-  );
-
-  return {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [rotatedCoords],
-    },
-    properties: {
-      name: slot.SlotName,
-    },
-  };
-});
+        return {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [rotatedCoords],
+          },
+          properties: {
+            name:
+              slot.SlotName && slot.SlotName.toUpperCase() === "T-PATH"
+                ? "T-PATH"
+                : slot.SlotName,
+          },
+        };
+      });
 
       map.addSource("slots", {
         type: "geojson",
@@ -199,6 +213,7 @@ const features = slotsData.map((slot) => {
       });
 
       const bounds = new maplibregl.LngLatBounds();
+
       features.forEach((f) => {
         f.geometry.coordinates[0].forEach((coord) => {
           bounds.extend(coord);
@@ -206,15 +221,14 @@ const features = slotsData.map((slot) => {
       });
 
       map.fitBounds(bounds, {
-          padding: {
-    top: 120,   
-    bottom: 40,
-    left: 40,
-    right: 40,
-  },
+        padding: {
+          top: 120,
+          bottom: 40,
+          left: 40,
+          right: 40,
+        },
         duration: 0,
       });
-
 
       map.on("click", "slots-fill", (e) => {
         const name = e.features[0].properties.name;
@@ -242,60 +256,54 @@ const features = slotsData.map((slot) => {
     return () => map.remove();
   }, []);
 
+  function findSlotFromData(lat, lon) {
+    const pt = point([lon, lat]);
 
-function findSlotFromData(lat, lon) {
-  const pt = point([lon, lat]);
+    for (let slot of slotsData) {
+      const coords = slot.LatLong.split(",").map((pair) => {
+        const [lat2, lon2] = pair.trim().split(" ").map(Number);
+        return [lon2, lat2];
+      });
 
-  for (let slot of slotsData) {
-    const coords = slot.LatLong.split(",").map((pair) => {
-      const [lat2, lon2] = pair.trim().split(" ").map(Number);
-      return [lon2, lat2];
+      const poly = polygon([[...coords, coords[0]]]);
+
+      if (booleanPointInPolygon(pt, poly)) {
+        return slot.SlotName ? slot.SlotName.toUpperCase() : null;
+      }
+    }
+
+    return null;
+  }
+
+  const handleSearch = () => {
+    if (!searchCoord || !mapInstance.current) return;
+
+    const [lat, lon] = searchCoord.split(",").map(Number);
+
+    const center = [77.2867, 28.5134];
+    const angle = -90 * (Math.PI / 180);
+
+    const rotatedCenter = rotatePoint([lon, lat], center, angle);
+
+    mapInstance.current.flyTo({
+      center: rotatedCenter,
+      zoom: 20,
     });
 
+    const name = findSlotFromData(lat, lon);
 
-    const poly = polygon([[...coords, coords[0]]]);
+    if (name) {
+      mapInstance.current.setFilter("slots-highlight", ["==", "name", name]);
 
-    if (booleanPointInPolygon(pt, poly)) {
-      return slot.SlotName;
+      mapInstance.current.setFilter("slots-label", ["==", "name", name]);
+
+      setSelectedSlot(name);
+    } else {
+      mapInstance.current.setFilter("slots-highlight", ["==", "name", ""]);
+      mapInstance.current.setFilter("slots-label", ["==", "name", ""]);
+      setSelectedSlot(null);
     }
-  }
-
-  return null;
-}
- const handleSearch = () => {
-  if (!searchCoord || !mapInstance.current) return;
-
-  const [lat, lon] = searchCoord.split(",").map(Number);
-
-  mapInstance.current.flyTo({
-    center: [lon, lat],
-    zoom: 20,
-  });
-
-  const name = findSlotFromData(lat, lon); 
-
-  if (name) {
-    mapInstance.current.setFilter("slots-highlight", [
-      "==",
-      "name",
-      name,
-    ]);
-
-    mapInstance.current.setFilter("slots-label", [
-      "==",
-      "name",
-      name,
-    ]);
-
-    setSelectedSlot(name);
-  } else {
-    mapInstance.current.setFilter("slots-highlight", ["==", "name", ""]);
-    mapInstance.current.setFilter("slots-label", ["==", "name", ""]);
-    setSelectedSlot(null);
-  }
-};
-
-  
+  };
 
   useEffect(() => {
     if (!mapInstance.current || !routeData.length) return;
@@ -335,16 +343,17 @@ function findSlotFromData(lat, lon) {
           </button>
         </div>
       </div>
-{selectedSlot && (
-  <div style={styles.infoPanel}>
-    <div style={styles.infoTitle}>Slot Details</div>
 
-    <div style={styles.infoRow}>
-      <span style={styles.label}>Slot:</span>
-      <span>{selectedSlot}</span>
-    </div>
-  </div>
-)}
+      {selectedSlot && (
+        <div style={styles.infoPanel}>
+          <div style={styles.infoTitle}>Slot Details</div>
+
+          <div style={styles.infoRow}>
+            <span style={styles.label}>Slot:</span>
+            <span>{selectedSlot}</span>
+          </div>
+        </div>
+      )}
 
       <div ref={mapRef} style={styles.map} />
     </div>
@@ -421,32 +430,32 @@ const styles = {
     boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
     zIndex: 10,
   },
+
   infoPanel: {
-  position: "absolute",
-  top: 80,
-  right: 20,
-  background: "#fff",
-  padding: "12px 14px",
-  borderRadius: "10px",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-  zIndex: 20,
-  minWidth: "180px",
-},
+    position: "absolute",
+    top: 80,
+    right: 20,
+    background: "#fff",
+    padding: "12px 14px",
+    borderRadius: "10px",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+    zIndex: 20,
+    minWidth: "180px",
+  },
 
-infoTitle: {
-  fontWeight: 600,
-  marginBottom: "8px",
-  fontSize: "14px",
-},
+  infoTitle: {
+    fontWeight: 600,
+    marginBottom: "8px",
+    fontSize: "14px",
+  },
 
-infoRow: {
-  display: "flex",
-  justifyContent: "space-between",
-  fontSize: "13px",
-},
+  infoRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: "13px",
+  },
 
-label: {
-  color: "#000000",
-},
-
+  label: {
+    color: "#000000",
+  },
 };

@@ -18,7 +18,6 @@ export default function MapContainer() {
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
-  // 🔍 SEARCH
   function handleSearch() {
     if (!searchCoord) return;
 
@@ -42,7 +41,6 @@ export default function MapContainer() {
     setSelectedSlot(null);
   }
 
-  // 🔥 ZOOM
   const handleWheel = useCallback((e) => {
     e.preventDefault();
 
@@ -65,7 +63,6 @@ export default function MapContainer() {
     });
   }, []);
 
-  // 🖱️ PAN
   const handleMouseDown = (e) => {
     isDragging.current = true;
     lastPos.current = { x: e.clientX, y: e.clientY };
@@ -91,8 +88,6 @@ export default function MapContainer() {
 
   return (
     <div style={styles.container}>
-      
-      {/* 🔍 SEARCH UI */}
       <input
         type="text"
         placeholder="lat,lon"
@@ -115,7 +110,9 @@ export default function MapContainer() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <g transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}>
+        <g
+          transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}
+        >
           <SlotLayer selectedSlot={selectedSlot} />
         </g>
       </svg>
