@@ -43,7 +43,7 @@ export default function MapView() {
   }, [selectedSlot]);
 
   useEffect(() => {
-    if (!mapInstance.current) return;
+    // if (!mapInstance.current) return;
 
     if (!navigator.geolocation) {
       console.log("Geolocation not supported");
@@ -62,6 +62,7 @@ export default function MapView() {
         const rotatedPoint = rotatePoint([lon, lat], center, angle);
 
         const map = mapInstance.current;
+        if (!map) return;
 
         if (!truckMarkerRef.current) {
           const el = document.createElement("div");
