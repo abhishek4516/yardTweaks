@@ -10,8 +10,8 @@ import { graph } from "../data/graph";
 import { roadNodes } from "../data/roadNodes";
 // import { aStar } from "../utils/aStar";
 import {dijkstra} from "../utils/dijkstra";
-import { findNearestNode } from "../utils/findNearestNode";
-import { getSlotCenter } from "../utils/getSlotCenter";
+// import { findNearestNode } from "../utils/findNearestNode";
+// import { getSlotCenter } from "../utils/getSlotCenter";
 
 function rotatePoint([x, y], [cx, cy], angle) {
   const dx = x - cx;
