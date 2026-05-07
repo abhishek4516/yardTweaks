@@ -8,7 +8,6 @@ import { point, polygon } from "@turf/helpers";
 // import { io } from "socket.io-client";
 // import { graph } from "../data/graph";
 // import { roadNodes } from "../data/roadNodes";
-// import { aStar } from "../utils/aStar";
 // import {dijkstra} from "../utils/dijkstra";
 // import { findNearestNode } from "../utils/findNearestNode";
 // import { getSlotCenter } from "../utils/getSlotCenter";
@@ -39,8 +38,8 @@ export default function MapView() {
   const [searchCoord, setSearchCoord] = useState("");
   const [routeData] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [startslot, setStartSlot] = useState(null);
-  const [endSlot, setEndSlot] = useState(null);
+  // const [startslot, setStartSlot] = useState(null);
+  // const [endSlot, setEndSlot] = useState(null);
 
   const selectedSlotRef = useRef(null);
 
@@ -247,10 +246,9 @@ export default function MapView() {
       map.on("mouseleave", "slots-fill", () => {
         map.getCanvas().style.cursor = "";
       });
-
+      // dijkstra implementation
       // const path = dijkstra(graph, "N1", "N2");
       // const routeCoords = path.map((nodeId) => roadNodes[nodeId]);
-      // dijkstra implementation
       // map.getSource("route").setData({
       //   type: "Feature",
       //   geometry: { type: "LineString", coordinates: routeCoords },
@@ -336,16 +334,24 @@ export default function MapView() {
 
   return (
     <div style={styles.container}>
-
       {/* ── Search bar ── */}
       <div style={styles.topBar}>
         <div style={styles.searchWrapper}>
-          <svg style={styles.searchIcon} viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <svg
+            style={styles.searchIcon}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="rgba(148,163,184,0.7)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
             type="text"
-            placeholder="Search by slot name or coordinates..."
+            placeholder="Search by Latitude , Longitude..."
             value={searchCoord}
             onChange={(e) => setSearchCoord(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -357,58 +363,88 @@ export default function MapView() {
               style={styles.clearButton}
               title="Clear"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.7)" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(148,163,184,0.7)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           )}
           <div style={styles.searchDivider} />
-          <button onClick={handleSearch} style={styles.button}>Search</button>
+          <button onClick={handleSearch} style={styles.button}>
+            Search
+          </button>
         </div>
       </div>
 
       {/* ── Slot details panel ── */}
-      {selectedSlot && (() => {
-        const { block, row, column } = parseSlotName(selectedSlot);
-        return (
-          <div style={styles.infoPanel}>
-            <div style={styles.infoPanelHeader}>
-              <div style={styles.infoPanelDot} />
-              <span style={styles.infoPanelTitle}>Slot Details</span>
-              <button onClick={handleDeselect} style={styles.closeButton} title="Close">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.7)" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div style={styles.infoPanelSlotRow}>
-              <span style={styles.infoPanelSlotName}>{selectedSlot}</span>
-              <span style={styles.statusBadge}>Available</span>
-            </div>
-            <div style={styles.infoGrid}>
-              <div style={styles.infoCell}>
-                <span style={styles.infoCellLabel}>Block</span>
-                <span style={styles.infoCellValue}>{block}</span>
+      {selectedSlot &&
+        (() => {
+          const { block, row, column } = parseSlotName(selectedSlot);
+          return (
+            <div style={styles.infoPanel}>
+              <div style={styles.infoPanelHeader}>
+                <div style={styles.infoPanelDot} />
+                <span style={styles.infoPanelTitle}>Slot Details</span>
+                <button
+                  onClick={handleDeselect}
+                  style={styles.closeButton}
+                  title="Close"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="rgba(148,163,184,0.7)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
               </div>
-              <div style={styles.infoCell}>
-                <span style={styles.infoCellLabel}>Row</span>
-                <span style={styles.infoCellValue}>{row}</span>
+              <div style={styles.infoPanelSlotRow}>
+                <span style={styles.infoPanelSlotName}>{selectedSlot}</span>
+                <span style={styles.statusBadge}>Available</span>
               </div>
-              <div style={styles.infoCell}>
-                <span style={styles.infoCellLabel}>Column</span>
-                <span style={styles.infoCellValue}>{column}</span>
+              <div style={styles.infoGrid}>
+                <div style={styles.infoCell}>
+                  <span style={styles.infoCellLabel}>Block</span>
+                  <span style={styles.infoCellValue}>{block}</span>
+                </div>
+                <div style={styles.infoCell}>
+                  <span style={styles.infoCellLabel}>Row</span>
+                  <span style={styles.infoCellValue}>{row}</span>
+                </div>
+                <div style={styles.infoCell}>
+                  <span style={styles.infoCellLabel}>Column</span>
+                  <span style={styles.infoCellValue}>{column}</span>
+                </div>
+              </div>
+              <div style={styles.infoDivider} />
+              <div style={styles.actionRow}>
+                {/* <button style={styles.actionButtonPrimary}>Navigate</button> */}
+                <button
+                  onClick={handleDeselect}
+                  style={styles.actionButtonSecondary}
+                >
+                  Deselect
+                </button>
               </div>
             </div>
-            <div style={styles.infoDivider} />
-            <div style={styles.actionRow}>
-              <button style={styles.actionButtonPrimary}>Navigate</button>
-              <button onClick={handleDeselect} style={styles.actionButtonSecondary}>Deselect</button>
-            </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
-      {/* ── Zoom + recenter controls ── */}
+      {/* ── Zoom recenter controls ── */}
       <div style={styles.zoomControls}>
         <div style={styles.zoomGroup}>
           <button
@@ -416,8 +452,17 @@ export default function MapView() {
             onClick={() => mapInstance.current?.zoomIn()}
             title="Zoom in"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,210,230,0.9)" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(200,210,230,0.9)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
           <div style={styles.zoomDivider} />
@@ -426,13 +471,34 @@ export default function MapView() {
             onClick={() => mapInstance.current?.zoomOut()}
             title="Zoom out"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,210,230,0.9)" strokeWidth="2.5" strokeLinecap="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(200,210,230,0.9)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
         </div>
-        <button style={styles.recenterButton} onClick={handleRecenter} title="Recenter map">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(200,210,230,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <button
+          style={styles.recenterButton}
+          onClick={handleRecenter}
+          title="Recenter map"
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="rgba(200,210,230,0.9)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="3" />
             <line x1="12" y1="2" x2="12" y2="6" />
             <line x1="12" y1="18" x2="12" y2="22" />
@@ -448,11 +514,23 @@ export default function MapView() {
       {/* ── Bottom legend bar ── */}
       <div style={styles.legendBar}>
         <div style={styles.legendItem}>
-          <div style={{ ...styles.legendSwatch, background: "rgba(37,99,235,0.55)", border: "1px solid rgba(37,99,235,0.9)" }} />
+          <div
+            style={{
+              ...styles.legendSwatch,
+              background: "rgba(37,99,235,0.55)",
+              border: "1px solid rgba(37,99,235,0.9)",
+            }}
+          />
           <span style={styles.legendLabel}>Available</span>
         </div>
         <div style={styles.legendItem}>
-          <div style={{ ...styles.legendSwatch, background: "rgba(249,115,22,0.55)", border: "1px solid rgba(249,115,22,0.9)" }} />
+          <div
+            style={{
+              ...styles.legendSwatch,
+              background: "rgba(249,115,22,0.55)",
+              border: "1px solid rgba(249,115,22,0.9)",
+            }}
+          />
           <span style={styles.legendLabel}>Selected</span>
         </div>
         <div style={styles.legendItem}>
@@ -461,14 +539,15 @@ export default function MapView() {
         </div>
         <span style={styles.legendCount}>{slotsData.length} slots total</span>
       </div>
-
     </div>
   );
 }
 
+// Stylesheet
+
 const glass = {
-  background: "rgba(10, 18, 35, 0.92)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(10, 18, 35, 0.93)",
+  border: "1px solid rgba(255, 255, 255, 0.05)",
   backdropFilter: "blur(24px)",
   WebkitBackdropFilter: "blur(24px)",
 };
