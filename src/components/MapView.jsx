@@ -6,10 +6,10 @@ import "axios";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon } from "@turf/helpers";
 // import { io } from "socket.io-client";
-import { graph } from "../data/graph";
-import { roadNodes } from "../data/roadNodes";
+// import { graph } from "../data/graph";
+// import { roadNodes } from "../data/roadNodes";
 // import { aStar } from "../utils/aStar";
-import {dijkstra} from "../utils/dijkstra";
+// import {dijkstra} from "../utils/dijkstra";
 // import { findNearestNode } from "../utils/findNearestNode";
 // import { getSlotCenter } from "../utils/getSlotCenter";
 
