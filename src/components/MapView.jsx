@@ -8,7 +8,10 @@ import { point, polygon } from "@turf/helpers";
 // import { io } from "socket.io-client";
 import { graph } from "../data/graph";
 import { roadNodes } from "../data/roadNodes";
-import { aStar } from "../utils/aStar";
+// import { aStar } from "../utils/aStar";
+import {dijkstra} from "../utils/dijkstra";
+import { findNearestNode } from "../utils/findNearestNode";
+import { getSlotCenter } from "../utils/getSlotCenter";
 
 function rotatePoint([x, y], [cx, cy], angle) {
   const dx = x - cx;
@@ -28,13 +31,13 @@ export default function MapView() {
   const [searchCoord, setSearchCoord] = useState("");
   const [routeData] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [startslot, setStartSlot] = useState(null);
+  const [endSlot, setEndSlot] = useState(null);
 
   const selectedSlotRef = useRef(null);
-  const testPath = aStar(graph, "N1", "N4");
 
-  const routeCoords = testPath.map((nodeId) => roadNodes[nodeId]);
 
-  console.log(testPath);
+
   useEffect(() => {
     selectedSlotRef.current = selectedSlot;
   }, [selectedSlot]);
@@ -259,18 +262,24 @@ export default function MapView() {
         map.getCanvas().style.cursor = "";
       });
 
-      const path = aStar(graph, "N1", "N4");
+      // const path = dijkstra(graph, "N1", "N2");
 
-      const routeCoords = path.map((nodeId) => roadNodes[nodeId]);
+      // const routeCoords = path.map((nodeId) => roadNodes[nodeId]);
 
-      map.getSource("route").setData({
-        type: "Feature",
+      
+  // dijkstra implementation
 
-        geometry: {
-          type: "LineString",
-          coordinates: routeCoords,
-        },
-      });
+
+      // map.getSource("route").setData({
+      //   type: "Feature",
+
+      //   geometry: {
+      //     type: "LineString",
+      //     coordinates: routeCoords,
+      //   },
+      // });
+
+      
     });
 
     return () => map.remove();
@@ -387,6 +396,7 @@ const styles = {
     position: "fixed",
     overflow: "hidden",
     fontFamily: "Inter, system-ui, sans-serif",
+    background: "#546896",
   },
 
   map: {
@@ -400,7 +410,7 @@ const styles = {
     top: 0,
     left: 0,
     width: "100%",
-    padding: "12px 16px",
+    padding: "18px",
     display: "flex",
     justifyContent: "center",
     zIndex: 10,
@@ -409,73 +419,96 @@ const styles = {
 
   searchWrapper: {
     display: "flex",
-    gap: "8px",
-    background: "rgba(255,255,255,0.95)",
-    backdropFilter: "blur(10px)",
-    padding: "8px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+    alignItems: "center",
+    gap: "10px",
+    background: "rgba(15, 23, 42, 0.88)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+    padding: "12px",
+    borderRadius: "18px",
+    boxShadow: "0 10px 35px rgba(0,0,0,0.35)",
+    border: "1px solid rgba(255,255,255,0.08)",
     pointerEvents: "auto",
     width: "100%",
-    maxWidth: "420px",
+    maxWidth: "520px",
   },
 
   input: {
     flex: 1,
-    padding: "10px 12px",
-    border: "1px solid #ddd",
-    borderRadius: "6px",
+    padding: "14px 16px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "12px",
     fontSize: "14px",
     outline: "none",
+    background: "rgba(255,255,255,0.06)",
+    color: "white",
+    transition: "all 0.2s ease",
   },
 
   button: {
-    padding: "10px 14px",
-    background: "#2563eb",
+    padding: "13px 18px",
+    background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
     color: "#fff",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     cursor: "pointer",
-    fontWeight: 500,
+    fontWeight: 600,
+    fontSize: "14px",
+    letterSpacing: "0.3px",
+    transition: "all 0.2s ease",
+    boxShadow: "0 6px 18px rgba(37,99,235,0.35)",
   },
 
   resultBox: {
     position: "absolute",
-    top: 70,
+    top: 85,
     left: "50%",
     transform: "translateX(-50%)",
-    background: "#fff",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+    background: "rgba(15,23,42,0.92)",
+    color: "white",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
     zIndex: 10,
+    border: "1px solid rgba(255,255,255,0.08)",
   },
 
   infoPanel: {
     position: "absolute",
-    top: 80,
+    top: 95,
     right: 20,
-    background: "#fff",
-    padding: "12px 14px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+    background: "rgba(15,23,42,0.92)",
+    color: "white",
+    padding: "16px",
+    borderRadius: "18px",
+    boxShadow: "0 10px 35px rgba(0,0,0,0.35)",
     zIndex: 20,
-    minWidth: "180px",
+    minWidth: "220px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
   },
 
   infoTitle: {
-    fontWeight: 600,
-    marginBottom: "8px",
-    fontSize: "14px",
+    fontWeight: 700,
+    marginBottom: "14px",
+    fontSize: "15px",
+    letterSpacing: "0.5px",
+    color: "#93c5fd",
   },
 
   infoRow: {
     display: "flex",
     justifyContent: "space-between",
-    fontSize: "13px",
+    alignItems: "center",
+    fontSize: "14px",
+    padding: "10px 12px",
+    background: "rgba(255,255,255,0.05)",
+    borderRadius: "10px",
   },
 
   label: {
-    color: "#000000",
+    color: "#94a3b8",
+    fontWeight: 500,
   },
 };
