@@ -117,9 +117,11 @@ export default function MapView() {
     mapInstance.current = map;
 
     map.on("load", () => {
-      map.on("click", (e) => {
-        console.log([e.lngLat.lng, e.lngLat.lat]);
-      });
+      // logger
+
+      // map.on("click", (e) => {
+      //   console.log([e.lngLat.lng, e.lngLat.lat]);
+      // });
 
       const center = [77.2867, 28.5134];
       const angle = -90 * (Math.PI / 180);
